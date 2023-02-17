@@ -2,12 +2,12 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import Stats from 'three/addons/libs/stats.module.js';
-const histogramVertexShader = load('histogramVert.glsl')
-const histogramFragmentShader = load('histogramFrag.glsl')
-const particlsVertexShader = load('particlsVert.glsl')
-const particlsFragmentShader = load('particlsfrag.glsl')
-const particlsShadowVertexShader = load('particleshadow.vert.glsl')
-const particlsShadowFragmentShader = load('particleshadow.frag.glsl')
+const histogramVertexShader = load('./shaders/histogramVert.glsl')
+const histogramFragmentShader = load('./shaders/histogramFrag.glsl')
+const particlsVertexShader = load('./shaders/particlsVert.glsl')
+const particlsFragmentShader = load('./shaders/particlsfrag.glsl')
+const particlsShadowVertexShader = load('./shaders/particleshadow.vert.glsl')
+const particlsShadowFragmentShader = load('./shaders/particleshadow.frag.glsl')
 
 var camera, camera2, controls, scene, scene2, renderer, container;
 var video, videoTexture;
@@ -49,17 +49,18 @@ async function init() {
     // camera2 = new THREE.OrthographicCamera(-aspect/2, aspect/2, 1/2, -1/2, 1 / Math.pow(2, 53), 10)
     
     camera.position.z = 0.7;
-    camera2.position.z = 2;
+    camera2.position.set(1, 0, 0);
     controls = new OrbitControls(camera2, renderer.domElement);
     controls.minDistance = 0.005;
     controls.maxDistance = 1.0;
     controls.enableRotate = true;
+    controls.enablePan = false;
     controls.addEventListener("change", render);
     controls.update();
 
     {
         area = new THREE.Group()
-        area.position.set(aspect*0.3, 1*0.3, 0)
+        // area.position.set(aspect*0.3, 1*0.3, 0)
         area.scale.set(0.2, 0.2, 0.2)
         const cube = new THREE.Mesh(
             new THREE.BoxGeometry(1, 1, 1),
@@ -188,21 +189,25 @@ function calcHist () {
     const data = context.getImageData( 0, 0, canvas.width, canvas.height ).data;
     // console.log( data.length );
 
-    var rgb = [];
-    var skip = 32;
-    for (let i=0; i<data.length; i+=4*skip) {
-        rgb.push([data[i], data[i+1], data[i+2]])
-    }
-    // console.log(Math.max(...rgb))
-
     const histR = Array(256).fill(0)
     const histG = Array(256).fill(0)
     const histB = Array(256).fill(0)
-    for (let _rgb of rgb) {
-        histR[_rgb[0]]++
-        histG[_rgb[1]]++
-        histB[_rgb[2]]++
+
+    // var rgb = [];
+    var skip = 256;
+    for (let i=0; i<data.length; i+=4*skip) {
+        // rgb.push([data[i], data[i+1], data[i+2]])
+        histR[data[i]]++
+        histG[data[i+1]]++
+        histB[data[i+2]]++
     }
+    // console.log(Math.max(...rgb))
+
+    // for (let _rgb of rgb) {
+    //     histR[_rgb[0]]++
+    //     histG[_rgb[1]]++
+    //     histB[_rgb[2]]++
+    // }
     const max = Math.max(...histR.concat(histG).concat(histB))
     // console.log(max)
     for (let i=0; i<256; i++) {
@@ -289,9 +294,23 @@ function castParticleShadow(texture, width, height) {
 
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const can = renderer.domElement
+    const width = window.innerWidth
+    const height = window.innerHeight;
+    const canwidth = can.clientWidth
+    const canheight = can.clientHeight;
+
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(width, height);
+
+    camera.left = -width / height / 2;
+    camera.right = width / height / 2;
+    camera.top = 1 / 2;
+    camera.bottom = -1 / 2;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera2.aspect = width / height;
+    camera2.updateProjectionMatrix();
+    
     render();
 }
 
@@ -362,6 +381,11 @@ function videoOnLoadedData() {
 
         var shad = castParticleShadow(videoTexture, video.videoWidth, video.videoHeight)
         area.add(shad)
+
+        // var h = calcHist()
+        // // space2.remove(scene.getObjectByName('graph'))
+        // space.add(h);
+
 
         var pausePlayObj = {
             pausePlay: function () {
