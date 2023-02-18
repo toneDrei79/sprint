@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { PlaneGeometry } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import Stats from 'three/addons/libs/stats.module.js';
@@ -59,15 +60,17 @@ async function init() {
     const aspect = window.innerWidth / window.innerHeight
     camera = new THREE.OrthographicCamera(-aspect/2, aspect/2, 1/2, -1/2, 1 / Math.pow(2, 53), 1)
     camera2 = new THREE.OrthographicCamera(-aspect/2, aspect/2, 1/2, -1/2, 1 / Math.pow(2, 53), 10)
+    // camera2 = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 10);
     tmpCam = new THREE.OrthographicCamera(-aspect/2, aspect/2, 1/2, -1/2, 1 / Math.pow(2, 53), 10)
     camera.position.z = 0.7;
-    camera2.position.z = 2;
+    camera2.position.set(0.5, 0, -5);
     
 
     controls = new OrbitControls(camera2, renderer.domElement);
     controls.minDistance = 0.005;
     controls.maxDistance = 1.0;
     controls.enableRotate = true;
+    controls.enablePan = true;
     controls.addEventListener("change", render);
     controls.update();
     
@@ -87,6 +90,7 @@ async function init() {
     // scene.add(histogramSpace)
 
     particleSpace = generateParticleSpace()
+    // particleSpace.position.z = 0
     scene2.add(particleSpace)
 
     // const histo = shad()
@@ -112,6 +116,8 @@ function render() {
         // type: THREE.HalfFloatType,
         magFilter: THREE.NearestFilter,
         minFilter: THREE.NearestFilter
+        // magFilter: THREE.LinearFilter,
+        // minFilter: THREE.LinearFilter
     })
 
     bucketMat = new THREE.ShaderMaterial({
@@ -119,41 +125,101 @@ function render() {
         fragmentShader: histf,
         uniforms: {
             tex: {type: 't', value: videoTexture},
+            color: {value: null}
         },
         blending: THREE.CustomBlending,
         blendEquation: THREE.AddEquation,
         blendSrc: THREE.OneFactor,
         blendDst: THREE.OneFactor,
+        // depthTest: false,
+        // depthWrite: false,
         // side: THREE.DoubleSide
+
     })
 
-    
+    var positions = []
+    if (video) {
+        for (let j=0; j<video.videoHeight; j++) {
+            for (let i=0; i<video.videoWidth; i++) {
+                positions.push(i/video.videoWidth, j/video.videoHeight, 0.0)
+            }
+        }
+    }
+    // var tmp = new THREE.PlaneGeometry(1, 1, video.videoWidth, video.videoHeight)
+    var tmp = new THREE.BufferGeometry()
+    tmp.setAttribute(
+        'position',
+        new THREE.BufferAttribute(new Float32Array(positions), 3)
+        // new THREE.BufferAttribute(positions, 3)
+    )
+    tmp.computeBoundingSphere()
+    // var points = new THREE.Mesh(new THREE.PlaneGeometry(1,1,video.videoWidth, video.videoHeight), bucketMat)
+
+
+    if (points) {
+        tmpScene.remove(points);
+        points.geometry.dispose();
+    }
+    points = new THREE.Points(tmp, bucketMat)
+    // points = new THREE.Points(new PlaneGeometry(1, 1, video.videoHeight, video.videoWidth), bucketMat)
+    tmpScene.add(points)
+
+    const clearColor = renderer.getClearColor(new THREE.Color());
+    renderer.setClearColor(new THREE.Color(0,0,0));
+
+    // renderer.clear();
     renderer.setClearColor(0x000000);
     renderer.setRenderTarget(dat)
     renderer.clear();
-    renderer.render(tmpScene, tmpCam)
+    for (let i=0; i<3; i++) {
+        var mask = [0, 0, 0]
+        mask[i] = 1
+        // console.log(mask)
+        bucketMat.uniforms.color.value = mask
+        // renderer.setClearColor(0x000000);
+        // renderer.setRenderTarget(dat)
+        // renderer.clear();
+        renderer.render(tmpScene, tmpCam)
+
+        // renderer.setRenderTarget(null)
+    }
+    renderer.setRenderTarget(null)
+
+
+    renderer.setClearColor(clearColor);
+
+
+
     let mem = new Float32Array(1*256*4)
     renderer.readRenderTargetPixels(dat, 0, 0, 256, 1, mem)
     // console.log(dat)
-    // console.log(mem)
+    console.log(mem)
+    let r = new Float32Array(256)
+    let g = new Float32Array(256)
+    let b = new Float32Array(256)
+    for (let i=0; i<256; i++){
+        r[i] = mem[i*4]
+        g[i] = mem[i*4+1]
+        b[i] = mem[i*4+2]
+    }
+    // console.log(b)
+    // renderer.clear();
 
-    renderer.setRenderTarget(null)
-
-    const maxim = Math.max(...mem)
+    // const maxim = Math.max(...mem)
     // console.log('a ' + maxim)
 
-    var a = 0
-    const hisme = new Float32Array(256)
-    for (let i=0; i<256*4; i+=4) {
-        hisme[i/4] = mem[i]/maxim
-        // if (mem[i] == maxim) {
-        //     // console.log('aaa')
-        //     hisme[i/4] = 0
-        // }
-        a += mem[i]
-    }
+    // var a = 0
+    // const hisme = new Float32Array(256)
+    // for (let i=0; i<256*4; i+=4) {
+    //     hisme[i/4] = mem[i]/maxim
+    //     // if (mem[i] == maxim) {
+    //     //     // console.log('aaa')
+    //     //     hisme[i/4] = 0
+    //     // }
+    //     a += mem[i]
+    // }
     // console.log(a)
-    const againmaxim = Math.max(...hisme)
+    // const againmaxim = Math.max(...hisme)
     // console.log('b ' + againmaxim)
 
 
@@ -165,7 +231,7 @@ function render() {
         fragmentShader: drawf,
         uniforms: {
             hist: {type: 't', value: dat.texture}, // ???
-            histmem: {type: 'v3v', value: hisme},
+            // histmem: {type: 'v3v', value: hisme},
             // hist: {type: 't', value: dat}, // ???
         },
     })
@@ -182,6 +248,8 @@ function render() {
     renderer.clear();
     renderer.render(scene, camera);
     renderer.render(scene2, camera2);
+
+
 }
 
 
@@ -201,7 +269,8 @@ function shad() {
     //     // side: THREE.DoubleSide
     // })
 
-    // const positions = new Float32Array(video.videoHeight*video.videoWidth*3)
+    // const positions = new Float32Array(video.videoHeight*video.videoWidth*3).fill(0)
+    /*
     var positions = []
     for (let j=0; j<video.videoHeight; j++) {
         for (let i=0; i<video.videoWidth; i++) {
@@ -224,8 +293,10 @@ function shad() {
         points.geometry.dispose();
     }
     points = new THREE.Points(tmp, bucketMat)
+    // points = new THREE.Points(new PlaneGeometry(1, 1, video.videoHeight, video.videoWidth), bucketMat)
     tmpScene.add(points)
-    points.position.set(-0.9, 0.3, 0.0)
+    */
+    // points.position.set(-0.9, 0.3, 0.0)
     // points.scale.set(.2, .2, .2)
     // scene2.add(points) // visualize histgram bucket data
 
@@ -273,7 +344,7 @@ function videoOnLoadedData() {
 
         histmesh = shad()
         histmesh.scale.set(.4, .4, .4)
-        scene2.add(histmesh)
+        scene.add(histmesh)
 
         // var hst
 
@@ -302,6 +373,7 @@ function animate() {
         
     }
     if (stats) stats.update();
+    // controls.update();
     render();
 }
 
@@ -399,8 +471,20 @@ function textureToPoint(texture, width, height) {
 
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const aspect = window.innerWidth / window.innerHeight;
+    // camera.aspect = window.innerWidth / window.innerHeight;
+    camera.left = -aspect/2
+    camera.right = aspect/2
+    camera.top = 1/2
+    camera.bottom = -1/2
     camera.updateProjectionMatrix();
+
+    camera2.left = -aspect/2
+    camera2.right = aspect/2
+    camera2.top = 1/2
+    camera2.bottom = -1/2
+    camera2.updateProjectionMatrix();
+
     renderer.setSize(window.innerWidth, window.innerHeight);
     render();
 }
@@ -459,7 +543,7 @@ function generateHistogramSpace() {
 function generateParticleSpace() {
     const space = new THREE.Group()
     const aspect = window.innerWidth / window.innerHeight
-    space.position.set(aspect*0.3, 1*0.3, 0)
+    // space.position.set(aspect*0.3, 1*0.3, 0)
     space.scale.set(0.2, 0.2, 0.2)
     const cube = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),

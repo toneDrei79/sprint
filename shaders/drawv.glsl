@@ -16,7 +16,7 @@ void main() {
     // x = int(uv.x*255.0);
     x = gl_VertexID % (texSize.x+1);
     // if(texSize.x == 256) x = 0
-    y = uv.y;
+    y = uv.y * 10000.;
     vUv = uv;
     p = position.xy;
     col = texture2D ( hist, position.xy ).rgb;
