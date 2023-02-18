@@ -4,13 +4,10 @@ import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import Stats from 'three/addons/libs/stats.module.js';
 const particlVertexShader = load('./shaders/particlevert.glsl')
 const particlFragmentShader = load('./shaders/particlefrag.glsl')
-
-
 const histv = load('./shaders/histv.glsl')
 const histf = load('./shaders/histf.glsl')
 const drawv = load('./shaders/drawv.glsl')
 const drawf = load('./shaders/drawf.glsl')
-
 
 
 
@@ -21,21 +18,37 @@ var particleSpace, histogramSpace
 var histmesh
 var points
 
+
+var positions = []
+var down = 4.0
+var bufgeom
+var needsUpdate = true
+
+
+
+
 var colorSpaceMaterial
 var stats
 
 init();
+animate();
+
+
 
 async function init() {
     container = document.createElement("div");
     document.body.appendChild(container);
+
+    stats = new Stats();
+    container.appendChild(stats.dom);
     
     scene = new THREE.Scene();
     scene2 = new THREE.Scene();
     tmpScene = new THREE.Scene();
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setAnimationLoop(animate);
+    // renderer.setAnimationLoop(animate);
+    renderer.setClearColor(0x000000);
     renderer.autoClear = false;
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -58,14 +71,61 @@ async function init() {
     controls.maxDistance = 1.0;
     controls.enableRotate = true;
     controls.enablePan = true;
-    controls.addEventListener("change", render);
-    controls.update();
+    // controls.addEventListener("change", render);
     
 
-    if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) throw new Error('navigator.mediaDevices is not loaded.')
+
+
+
+
+
+
+
+
+
+    {
+        dat = new THREE.WebGLRenderTarget(256, 1, {
+            type: THREE.FloatType,
+            // magFilter: THREE.NearestFilter,
+            // minFilter: THREE.NearestFilter
+            magFilter: THREE.LinearFilter,
+            minFilter: THREE.LinearFilter
+        })
+    
+        bucketMat = new THREE.ShaderMaterial({
+            vertexShader: histv,
+            fragmentShader: histf,
+            uniforms: {
+                tex: {type: 't', value: null}, // video texture will be set after loaded
+                color: {value: null}
+            },
+            blending: THREE.CustomBlending,
+            blendEquation: THREE.AddEquation,
+            blendSrc: THREE.OneFactor,
+            blendDst: THREE.OneFactor,
+            // depthTest: false,
+            // depthWrite: false,
+            // side: THREE.DoubleSide
+    
+        })
+
+        histMat = new THREE.ShaderMaterial({
+            vertexShader: drawv,
+            fragmentShader: drawf,
+            uniforms: {
+                hist: {type: 't', value: dat.texture}
+            },
+        })
+    }
+
+    
+    
+
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('navigator.mediaDevices is not loaded.')
 
     const constraints = {video: { width: 1920, height: 1080, facingMode: "user" }};
     const userMedia = await navigator.mediaDevices.getUserMedia(constraints)
+
     video = document.createElement("video");
     video.srcObject = userMedia;
     video.play();
@@ -89,65 +149,18 @@ async function init() {
     // })
 
 
-    stats = new Stats();
-    container.appendChild(stats.dom);
-
-
     window.addEventListener("resize", onWindowResize, false);
 }
 
 function render() {
-    dat = new THREE.WebGLRenderTarget(256, 1, {
-        type: THREE.FloatType,
-        // magFilter: THREE.NearestFilter,
-        // minFilter: THREE.NearestFilter
-        magFilter: THREE.LinearFilter,
-        minFilter: THREE.LinearFilter
-    })
-
-    bucketMat = new THREE.ShaderMaterial({
-        vertexShader: histv,
-        fragmentShader: histf,
-        uniforms: {
-            tex: {type: 't', value: videoTexture},
-            color: {value: null}
-        },
-        blending: THREE.CustomBlending,
-        blendEquation: THREE.AddEquation,
-        blendSrc: THREE.OneFactor,
-        blendDst: THREE.OneFactor,
-        // depthTest: false,
-        // depthWrite: false,
-        // side: THREE.DoubleSide
-
-    })
-
-    var positions = []
-    var down = 4.0
-    if (video) {
-        for (let j=0; j<video.videoHeight/down; j++) {
-            for (let i=0; i<video.videoWidth/down; i++) {
-                positions.push(i/video.videoWidth, j/video.videoHeight, 0.0)
-            }
-        }
-    }
-    var tmp = new THREE.BufferGeometry()
-    tmp.setAttribute(
-        'position',
-        new THREE.BufferAttribute(new Float32Array(positions), 3)
-    )
-    tmp.computeBoundingSphere()
-
     if (points) {
         tmpScene.remove(points);
         points.geometry.dispose();
     }
-    points = new THREE.Points(tmp, bucketMat)
+    points = new THREE.Points(bufgeom, bucketMat)
     tmpScene.add(points)
 
-    const clearColor = renderer.getClearColor(new THREE.Color());
-    renderer.setClearColor(new THREE.Color(0,0,0));
-    renderer.setClearColor(0x000000);
+
     renderer.setRenderTarget(dat)
     renderer.clear();
     for (let i=0; i<3; i++) {
@@ -159,22 +172,13 @@ function render() {
     renderer.setRenderTarget(null)
 
 
-    renderer.setClearColor(clearColor);
-
     // let mem = new Float32Array(1*256*4)
     // renderer.readRenderTargetPixels(dat, 0, 0, 256, 1, mem)
     // // console.log(dat)
     // console.log(mem)
 
-    histMat = new THREE.ShaderMaterial({
-        vertexShader: drawv,
-        fragmentShader: drawf,
-        uniforms: {
-            hist: {type: 't', value: dat.texture}
-        },
-    })
-
-    if (histmesh) histmesh.material = histMat
+// // 
+//     histmesh.material = histMat
 
 
 
@@ -189,6 +193,24 @@ function render() {
 
 function shad() {
     bucketMat.uniforms.tex.value = videoTexture
+
+    if (needsUpdate) {
+        positions = []
+        if (video) {
+            for (let j=0; j<video.videoHeight/down; j++) {
+                for (let i=0; i<video.videoWidth/down; i++) {
+                    positions.push(i/(video.videoWidth/down), j/(video.videoHeight/down), 0.0)
+                }
+            }
+        }
+        bufgeom = new THREE.BufferGeometry()
+        bufgeom.setAttribute(
+            'position',
+            new THREE.BufferAttribute(new Float32Array(positions), 3)
+        )
+        bufgeom.computeBoundingSphere()
+        needsUpdate = false    
+    }
     
     var hhh = new THREE.PlaneGeometry(1, 1, 256, 100)
     var hhmesh = new THREE.Mesh(hhh, histMat)
@@ -236,8 +258,10 @@ function videoOnLoadedData() {
 }
 
 function animate() {
-    // requestAnimationFrame(animate)
-    if (stats) stats.update();
+    requestAnimationFrame(animate)
+    controls.update();
+    // if (stats) stats.update();
+    stats.update();
     render();
 }
 
