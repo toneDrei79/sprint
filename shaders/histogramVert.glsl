@@ -9,13 +9,16 @@ flat out int x;
 varying float y;
 
 void main() {
-    // for (int j=0; j<h; j++) {
-    //     for (int i=0; i<w; i++) {
-    //         float xy[2];
-    //         xy[0] = float(i) / float(w);
-    //         xy[1] = float(j) / float(h);
-    //     }
-    // }
+    for (int j=0; j<h; j++) {
+        for (int i=0; i<w; i++) {
+            float xy[2];
+            xy[0] = float(i) / float(w);
+            xy[1] = float(j) / float(h);
+            // c[]
+        }
+    }
+    // vec3 texColor = texture2D ( tex, uv.xy ).rgb;
+
 
 
     x = int(uv.x*255.0);
