@@ -1,4 +1,4 @@
-export default class Loader {
+export default class ShaderLoader {
     
     constructor() {}   
     

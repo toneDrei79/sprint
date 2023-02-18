@@ -4,10 +4,10 @@ import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import Stats from 'three/addons/libs/stats.module.js';
 const particlVertexShader = load('./shaders/particlevert.glsl')
 const particlFragmentShader = load('./shaders/particlefrag.glsl')
-const histv = load('./shaders/histv.glsl')
-const histf = load('./shaders/histf.glsl')
-const drawv = load('./shaders/drawv.glsl')
-const drawf = load('./shaders/drawf.glsl')
+const histv = load('./shaders/histodata.vert.glsl')
+const histf = load('./shaders/histodata.frag.glsl')
+const drawv = load('./shaders/histograph.vert.glsl')
+const drawf = load('./shaders/histograph.frag.glsl')
 
 
 
@@ -96,7 +96,7 @@ async function init() {
             vertexShader: histv,
             fragmentShader: histf,
             uniforms: {
-                tex: {type: 't', value: null}, // video texture will be set after loaded
+                tex: {value: null}, // video texture will be set after loaded
                 color: {value: null}
             },
             blending: THREE.CustomBlending,
@@ -113,9 +113,17 @@ async function init() {
             vertexShader: drawv,
             fragmentShader: drawf,
             uniforms: {
-                hist: {type: 't', value: dat.texture}
+                hist: {value: dat.texture}
             },
         })
+
+
+        const quantizationNum = 100
+        const histGeom = new THREE.PlaneGeometry(1, 1, 256, quantizationNum)
+        const histmesh = new THREE.Mesh(histGeom, histMat)
+        histmesh.scale.set(.4, .4, .4)
+        scene.add(histmesh)
+
     }
 
     
@@ -155,7 +163,7 @@ async function init() {
 function render() {
     if (points) {
         tmpScene.remove(points);
-        points.geometry.dispose();
+        // points.geometry.dispose();
     }
     points = new THREE.Points(bufgeom, bucketMat)
     tmpScene.add(points)
@@ -212,10 +220,10 @@ function shad() {
         needsUpdate = false    
     }
     
-    var hhh = new THREE.PlaneGeometry(1, 1, 256, 100)
-    var hhmesh = new THREE.Mesh(hhh, histMat)
+    // var hhh = new THREE.PlaneGeometry(1, 1, 256, 100)
+    // var hhmesh = new THREE.Mesh(hhh, histMat)
 
-    return hhmesh
+    // return hhmesh
 }
 
 function videoOnLoadedData() {
@@ -230,12 +238,13 @@ function videoOnLoadedData() {
         
         var points = textureToPoint(videoTexture, video.videoWidth, video.videoHeight)
         points.name = 'point'
-        particleSpace.add(points);
+        particleSpace.add(points)
         // colorSpaceMaterial.uniforms.tex.value = videoTexture
 
-        histmesh = shad()
-        histmesh.scale.set(.4, .4, .4)
-        scene.add(histmesh)
+        shad()
+        // histmesh = shad()
+        // histmesh.scale.set(.4, .4, .4)
+        // scene.add(histmesh)
 
         // var hst
 
