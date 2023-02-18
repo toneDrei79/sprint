@@ -24,20 +24,9 @@ var points
 var colorSpaceMaterial
 var stats
 
-const clock = new THREE.Clock()
-
 init();
-animate();
-
 
 async function init() {
-
-    // var test = new Particle(0.2)
-    // console.log(test.scale)
-    // test.scale = 0.5
-    // console.log(test.scale)
-
-
     container = document.createElement("div");
     document.body.appendChild(container);
     
@@ -46,6 +35,7 @@ async function init() {
     tmpScene = new THREE.Scene();
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setAnimationLoop(animate);
     renderer.autoClear = false;
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -103,18 +93,16 @@ async function init() {
     container.appendChild(stats.dom);
 
 
-
     window.addEventListener("resize", onWindowResize, false);
 }
 
 function render() {
     dat = new THREE.WebGLRenderTarget(256, 1, {
         type: THREE.FloatType,
-        // type: THREE.HalfFloatType,
-        magFilter: THREE.NearestFilter,
-        minFilter: THREE.NearestFilter
-        // magFilter: THREE.LinearFilter,
-        // minFilter: THREE.LinearFilter
+        // magFilter: THREE.NearestFilter,
+        // minFilter: THREE.NearestFilter
+        magFilter: THREE.LinearFilter,
+        minFilter: THREE.LinearFilter
     })
 
     bucketMat = new THREE.ShaderMaterial({
@@ -135,9 +123,10 @@ function render() {
     })
 
     var positions = []
+    var down = 4.0
     if (video) {
-        for (let j=0; j<video.videoHeight; j++) {
-            for (let i=0; i<video.videoWidth; i++) {
+        for (let j=0; j<video.videoHeight/down; j++) {
+            for (let i=0; i<video.videoWidth/down; i++) {
                 positions.push(i/video.videoWidth, j/video.videoHeight, 0.0)
             }
         }
@@ -201,7 +190,7 @@ function render() {
 function shad() {
     bucketMat.uniforms.tex.value = videoTexture
     
-    var hhh = new THREE.PlaneGeometry(1, 1, 256, 5000)
+    var hhh = new THREE.PlaneGeometry(1, 1, 256, 100)
     var hhmesh = new THREE.Mesh(hhh, histMat)
 
     return hhmesh
@@ -247,13 +236,8 @@ function videoOnLoadedData() {
 }
 
 function animate() {
-    requestAnimationFrame(animate)
-
-    if (clock.getElapsedTime() > 5) {
-        
-    }
+    // requestAnimationFrame(animate)
     if (stats) stats.update();
-    // controls.update();
     render();
 }
 
