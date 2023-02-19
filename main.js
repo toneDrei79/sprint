@@ -1,78 +1,69 @@
-import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { GUI } from "three/addons/libs/lil-gui.module.min.js";
-import Stats from 'three/addons/libs/stats.module.js';
+import * as THREE from 'three'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
+import Stats from 'three/addons/libs/stats.module.js'
 import Histogram from './histogram.js'
-import Particle from "./particle.js"
+import Particle from './particle.js'
 
 
-var camera, camera2, controls, scene, scene2, renderer, container;
-var video, videoTexture;
-
+let camera, orbitCamera, scene, orbitScene, renderer
+let video, videoTexture
 let histogram, particle
-var stats
+let stats
 
-init();
-animate();
+init()
+animate()
 
 
 async function init() {
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    
-    scene = new THREE.Scene();
-    scene2 = new THREE.Scene();
+    const container = document.createElement('div')
+    document.body.appendChild(container)
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setClearColor(0x000000);
-    renderer.autoClear = false;
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = false;
+    renderer = new THREE.WebGLRenderer({antialias: true, alpha: true})
+    renderer.setPixelRatio(window.devicePixelRatio)
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.setClearColor(0x000000)
+    renderer.shadowMap.enabled = false
+    renderer.autoClear = false
+    container.appendChild(renderer.domElement)
 
-    container.appendChild(renderer.domElement);
+    scene = new THREE.Scene()
+    orbitScene = new THREE.Scene()
 
     const aspect = window.innerWidth / window.innerHeight
-    camera = new THREE.PerspectiveCamera(75, aspect, 0.0001, 10);
-    camera2 = new THREE.PerspectiveCamera(75, aspect, 0.0001, 10);
-    camera.position.z = .5;
-    camera2.position.z = .5;
+    // camera = new THREE.PerspectiveCamera(75, aspect, .01, 10)
+    camera = new THREE.OrthographicCamera(-aspect/2, aspect/2, 1/2, -1/2, .01, 10)
+    orbitCamera = new THREE.PerspectiveCamera(75, aspect, .001, 10)
+    camera.position.z = .5
+    orbitCamera.position.z = .5
 
+    const controls = new OrbitControls(orbitCamera, renderer.domElement)
+    controls.maxDistance = 1
+    controls.minDistance = .1
+    controls.enablePan = false
+    controls.update()
 
+    stats = new Stats()
+    container.appendChild(stats.dom)
 
-    
+    window.addEventListener('resize', onWindowResize, false)
 
-    controls = new OrbitControls(camera2, renderer.domElement);
-    // controls.update()
-    controls.minDistance = 0.005;
-    controls.maxDistance = 1.0;
-    controls.enableRotate = true;
-    controls.enablePan = true;
 
     histogram = new Histogram()
     scene.add(histogram.mesh)
 
-    particle = new Particle()
+    particle = new Particle() // added to scene later
     
-
-
     const gui = new GUI()
     guiHistogram(gui)
     // guiParticle(gui)
 
-    stats = new Stats();
-    container.appendChild(stats.dom);
-
-    window.addEventListener("resize", onWindowResize, false)
-
-
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('navigator.mediaDevices is not loaded.')
-
-    const constraints = {video: { width: 1920, height: 1080, facingMode: "user" }};
+    const constraints = {video: {width: 1920, height: 1080, facingMode: 'user'}}
     const userMedia = await navigator.mediaDevices.getUserMedia(constraints)
-    video = document.createElement("video");
-    video.srcObject = userMedia;
-    video.play();
+    video = document.createElement('video')
+    video.srcObject = userMedia
+    video.play()
 
     video.onloadeddata = videoOnLoadedData()
 }
@@ -80,9 +71,9 @@ async function init() {
 function render() {
     histogram.compute(renderer)
 
-    renderer.clear();
-    renderer.render(scene, camera);
-    renderer.render(scene2, camera2);
+    renderer.clear()
+    renderer.render(scene, camera)
+    renderer.render(orbitScene, orbitCamera)
 }
 
 function animate() {
@@ -90,7 +81,6 @@ function animate() {
 
     if (histogram.needsUpdate) histogram.loadCoordGeometry(video)
     if (particle.needsUpdate) particle.loadGeometry(video)
-
     stats.update()
 
     render()
@@ -109,11 +99,11 @@ function guiParticle(gui) {
 
 function videoOnLoadedData() {
     return function() {
-        videoTexture = new THREE.VideoTexture(video);
-        videoTexture.minFilter = THREE.NearestFilter;
-        videoTexture.magFilter = THREE.NearestFilter;
-        videoTexture.generateMipmaps = false;
-        videoTexture.format = THREE.RGBAFormat;
+        videoTexture = new THREE.VideoTexture(video)
+        videoTexture.minFilter = THREE.NearestFilter
+        videoTexture.magFilter = THREE.NearestFilter
+        videoTexture.generateMipmaps = false
+        videoTexture.format = THREE.RGBAFormat
 
         scene.background = videoTexture
         
@@ -122,19 +112,25 @@ function videoOnLoadedData() {
 
         particle.loadGeometry(video)
         particle.setVideoTexture(videoTexture)
-        scene2.add(particle.mesh)
+        orbitScene.add(particle.mesh)
     }
 }
 
 function onWindowResize() {
-    const aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const aspect = width / height
     
-    camera.aspect = aspect;
-    camera.updateProjectionMatrix();
+    // camera.aspect = aspect
+    camera.left = -aspect/2
+    camera.right = aspect/2
+    camera.top = 1/2
+    camera.bottom = -1/2
+    camera.updateProjectionMatrix()
 
-    camera2.aspect = aspect;
-    camera2.updateProjectionMatrix();
+    orbitCamera.aspect = aspect
+    orbitCamera.updateProjectionMatrix()
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    render();
+    renderer.setSize(width, height)
+    render()
 }

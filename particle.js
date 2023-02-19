@@ -1,4 +1,4 @@
-import * as THREE from "three"
+import * as THREE from 'three'
 import ShaderLoader from './shaderloader.js'
 
 export default class Particle {
@@ -36,8 +36,8 @@ export default class Particle {
     }
 
     loadGeometry(video) { // should be called in video.onLoadedVideo or needs update
-        const width = video.videoWidth / 8.
-        const height = video.videoHeight / 8.
+        const width = video.videoWidth / 4. // downsampling
+        const height = video.videoHeight / 4. // downsampling
         
         const positions = []
         for (let j=0; j<height; j++) {
