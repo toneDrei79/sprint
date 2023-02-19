@@ -7,24 +7,9 @@ import Histogram from './histogram.js'
 
 var camera, camera2, controls, scene, scene2, renderer, container;
 var video, videoTexture;
-var dat, histMat, bucketMat, tmpScene, tmpCam
-var particleSpace, histogramSpace
-var histmesh
-var points
-
-
-var positions = []
-var down = 4.0
-var bufgeom
-var needsUpdate = true
-
-
-
 
 let histogram
-
-
-
+let gui
 
 var colorSpaceMaterial
 var stats
@@ -34,7 +19,7 @@ animate();
 
 
 
-function init() {
+async function init() {
     container = document.createElement("div");
     document.body.appendChild(container);
 
@@ -43,7 +28,6 @@ function init() {
     
     scene = new THREE.Scene();
     scene2 = new THREE.Scene();
-    tmpScene = new THREE.Scene();
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setClearColor(0x000000);
@@ -64,8 +48,6 @@ function init() {
 
 
 
-    histogram = new Histogram()
-    scene.add(histogram.mesh)
     
 
     controls = new OrbitControls(camera2, renderer.domElement);
@@ -74,25 +56,35 @@ function init() {
     controls.maxDistance = 1.0;
     controls.enableRotate = true;
     controls.enablePan = true;
+
+    histogram = new Histogram()
+    scene.add(histogram.mesh)
     
+
+
+    gui = new GUI()
+    gui.add(histogram, 'downsamplingRate', 1., 32.).step(1.).name('down-sampling rate')
+    gui.add(histogram, 'roughness', 1., 32.).step(1.).name('roughness')
+
+
+
     window.addEventListener("resize", onWindowResize, false)
 
 
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('navigator.mediaDevices is not loaded.')
 
     const constraints = {video: { width: 1920, height: 1080, facingMode: "user" }};
-    navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
-        video = document.createElement("video");
-        video.srcObject = stream;
-        video.play();
+    const userMedia = await navigator.mediaDevices.getUserMedia(constraints)
+    video = document.createElement("video");
+    video.srcObject = userMedia;
+    video.play();
 
-        video.onloadeddata = videoOnLoadedData()
-    })
+    video.onloadeddata = videoOnLoadedData()
 }
 
 
 function render() {
-    if (video) histogram.compute(renderer, scene, video)
+    histogram.compute(renderer)
 
     renderer.clear();
     renderer.render(scene, camera);
@@ -118,13 +110,12 @@ function videoOnLoadedData() {
 
 function animate() {
     requestAnimationFrame(animate)
-    // controls.update();
     // if (stats) stats.update();
-    stats.update();
+    stats.update()
 
-
-    histogram.setVideoTexture(videoTexture)
-
+    if (histogram.needsUpdate) {
+        histogram.loadCoordGeometry(video)
+    }
 
     render();
 }
