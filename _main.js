@@ -92,7 +92,7 @@ function init() {
 
 
 function render() {
-    if (video) histogram.compute(renderer)
+    if (video) histogram.compute(renderer, scene, video)
 
     renderer.clear();
     renderer.render(scene, camera);
@@ -110,10 +110,8 @@ function videoOnLoadedData() {
 
         scene.background = videoTexture
         
-        if (histogram.needsUpdate) {
-            histogram.setVideoTexture(videoTexture)
-            histogram.loadCoordGeometry(video)
-        }
+        histogram.setVideoTexture(videoTexture)
+        histogram.loadCoordGeometry(video)
     }
 }
 
@@ -123,6 +121,11 @@ function animate() {
     // controls.update();
     // if (stats) stats.update();
     stats.update();
+
+
+    histogram.setVideoTexture(videoTexture)
+
+
     render();
 }
 

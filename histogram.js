@@ -24,6 +24,7 @@ export default class Histogram {
 
     constructor() {
         this.#needsUpdate = true
+        this.#downsamplingRate = 4
         this.#shaderLoader = new ShaderLoader()
 
         this.#initData()
@@ -34,7 +35,6 @@ export default class Histogram {
 
     setVideoTexture(texture) { // should be called in video.onLoadedVideo
         this.#dataMaterial.uniforms.tex.value = texture
-        console.log(texture)
     }
 
     #initData() {
@@ -98,28 +98,25 @@ export default class Histogram {
         this.#needsUpdate = false
     }
 
-    compute(renderer) { // should be called in render function
+    compute(renderer, scene, video) { // should be called in render function
         if (this.#coord) {
             this.#offscreanScene.remove(this.#coord);
             this.#coord.geometry.dispose();
         }
         this.#coord = new THREE.Points(this.#coordGeometry, this.#dataMaterial)
         this.#offscreanScene.add(this.#coord)
-    
-    
-        renderer.setRenderTarget(this.#data)
-        renderer.clear();
-        for (let i=0; i<3; i++) {
-            const color = [0, 0, 0]
-            color[i] = 1
-            this.#dataMaterial.uniforms.color.value = color
-            renderer.render(this.#offscreanScene, this.#offscreanCamera)
-        }
-        renderer.setRenderTarget(null)
 
-        // const _data = new Float32Array(1*256*4)
-        // renderer.readRenderTargetPixels(this.#data, 0, 0, 256, 1, _data)
-        // console.log(_data)
+        if (this.#coordGeometry) {
+            renderer.setRenderTarget(this.#data)
+            renderer.clear();
+            for (let i=0; i<3; i++) {
+                const color = [0, 0, 0]
+                color[i] = 1
+                this.#dataMaterial.uniforms.color.value = color
+                renderer.render(this.#offscreanScene, this.#offscreanCamera)
+            }
+            renderer.setRenderTarget(null)
+        }
     }
     
     #initOffscrean() {
