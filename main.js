@@ -10,22 +10,15 @@ var camera, camera2, controls, scene, scene2, renderer, container;
 var video, videoTexture;
 
 let histogram, particle
-let gui
-
-var colorSpaceMaterial
 var stats
 
 init();
 animate();
 
 
-
 async function init() {
     container = document.createElement("div");
     document.body.appendChild(container);
-
-    stats = new Stats();
-    container.appendChild(stats.dom);
     
     scene = new THREE.Scene();
     scene2 = new THREE.Scene();
@@ -39,20 +32,18 @@ async function init() {
 
     container.appendChild(renderer.domElement);
 
-    // camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 10);
     const aspect = window.innerWidth / window.innerHeight
-    camera = new THREE.OrthographicCamera(-aspect/2, aspect/2, 1/2, -1/2, 1 / Math.pow(2, 53), 10)
-    camera2 = new THREE.OrthographicCamera(-aspect/2, aspect/2, 1/2, -1/2, 1 / Math.pow(2, 53), 10)
-    // camera2 = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 10);
-    camera.position.z = 0.7;
-    camera2.position.z = 0.7;
+    camera = new THREE.PerspectiveCamera(75, aspect, 0.0001, 10);
+    camera2 = new THREE.PerspectiveCamera(75, aspect, 0.0001, 10);
+    camera.position.z = .5;
+    camera2.position.z = .5;
 
 
 
     
 
     controls = new OrbitControls(camera2, renderer.domElement);
-    controls.update()
+    // controls.update()
     controls.minDistance = 0.005;
     controls.maxDistance = 1.0;
     controls.enableRotate = true;
@@ -65,11 +56,12 @@ async function init() {
     
 
 
-    gui = new GUI()
-    gui.add(histogram, 'downsamplingRate', 1., 32.).step(1.).name('down-sampling rate')
-    gui.add(histogram, 'roughness', 1., 32.).step(1.).name('roughness')
+    const gui = new GUI()
+    guiHistogram(gui)
+    // guiParticle(gui)
 
-
+    stats = new Stats();
+    container.appendChild(stats.dom);
 
     window.addEventListener("resize", onWindowResize, false)
 
@@ -85,7 +77,6 @@ async function init() {
     video.onloadeddata = videoOnLoadedData()
 }
 
-
 function render() {
     histogram.compute(renderer)
 
@@ -94,6 +85,27 @@ function render() {
     renderer.render(scene2, camera2);
 }
 
+function animate() {
+    requestAnimationFrame(animate)
+
+    if (histogram.needsUpdate) histogram.loadCoordGeometry(video)
+    if (particle.needsUpdate) particle.loadGeometry(video)
+
+    stats.update()
+
+    render()
+}
+
+function guiHistogram(gui) {
+    const folder = gui.addFolder('Histogram')
+    folder.add(histogram, 'downsamplingRate', 1., 32.).step(1.).name('down-sampling rate')
+    folder.add(histogram, 'roughness', 1., 32.).step(1.).name('roughness')
+}
+
+function guiParticle(gui) {
+    const folder = gui.addFolder('Particle')
+    // folder.add(particle, 'downsamplingRate', 1., 128.).step(1.).name('down-sampling rate')
+}
 
 function videoOnLoadedData() {
     return function() {
@@ -114,33 +126,13 @@ function videoOnLoadedData() {
     }
 }
 
-
-function animate() {
-    requestAnimationFrame(animate)
-    // if (stats) stats.update();
-    stats.update()
-
-    if (histogram.needsUpdate) {
-        histogram.loadCoordGeometry(video)
-    }
-
-    render();
-}
-
-
 function onWindowResize() {
     const aspect = window.innerWidth / window.innerHeight;
-    // camera.aspect = window.innerWidth / window.innerHeight;
-    camera.left = -aspect/2
-    camera.right = aspect/2
-    camera.top = 1/2
-    camera.bottom = -1/2
+    
+    camera.aspect = aspect;
     camera.updateProjectionMatrix();
 
-    camera2.left = -aspect/2
-    camera2.right = aspect/2
-    camera2.top = 1/2
-    camera2.bottom = -1/2
+    camera2.aspect = aspect;
     camera2.updateProjectionMatrix();
 
     renderer.setSize(window.innerWidth, window.innerHeight);
