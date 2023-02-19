@@ -163,7 +163,7 @@ async function init() {
 function render() {
     if (points) {
         tmpScene.remove(points);
-        // points.geometry.dispose();
+        points.geometry.dispose();
     }
     points = new THREE.Points(bufgeom, bucketMat)
     tmpScene.add(points)
