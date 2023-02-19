@@ -1,12 +1,12 @@
 uniform sampler2D hist;
-uniform float downsamplingRate;
 uniform float roughness;
+uniform float quant;
 varying vec2 _uv;
 
 
 void main() {
     vec4 dat = texture2D(hist, _uv);
-    float y = _uv.y * 50000. * roughness / pow(downsamplingRate, 2.);
+    float y = _uv.y * quant * roughness;
 
     vec4 color = vec4(0., 0., 0., 1.);
     if (y > dat.r && y > dat.g && y > dat.b) discard;

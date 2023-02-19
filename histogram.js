@@ -56,8 +56,8 @@ export default class Histogram {
         this.#coordGeometry = geometry
 
         this.#dataMaterial.uniforms.roughness.value = this.#roughness
-        this.#graphMaterial.uniforms.downsamplingRate.value = this.#downsamplingRate
         this.#graphMaterial.uniforms.roughness.value = this.#roughness
+        this.#graphMaterial.uniforms.quant.value = width*height*0.1
         
         this.#needsUpdate = false
     }
@@ -112,8 +112,8 @@ export default class Histogram {
         this.#graphMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 hist: {value: this.#data.texture},
-                downsamplingRate: {value: this.#downsamplingRate},
-                roughness: {value: this.#roughness}
+                roughness: {value: this.#roughness},
+                quant: {value: null} // will be set after load video
             },
             vertexShader: this.#shaderLoader.load('./shaders/histograph.vert.glsl'),
             fragmentShader: this.#shaderLoader.load('./shaders/histograph.frag.glsl')
