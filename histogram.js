@@ -2,7 +2,6 @@ import * as THREE from 'three'
 import ShaderLoader from './shaderloader.js'
 
 
-
 export default class Histogram {
 
     #data
@@ -21,9 +20,9 @@ export default class Histogram {
     #shaderLoader
 
     constructor() {
-        this.#needsUpdate = false
         this.#downsamplingRate = 8.
         this.#roughness = 8.
+        this.#needsUpdate = false
         this.#shaderLoader = new ShaderLoader()
 
         this.#initData()
@@ -36,7 +35,7 @@ export default class Histogram {
         this.#dataMaterial.uniforms.tex.value = texture
     }
 
-    loadCoordGeometry(video) { // should be called in video.onLoadedVideo when needs update
+    loadCoordGeometry(video) { // should be called in video.onLoadedVideo or needs update
         const width = video.videoWidth / this.#downsamplingRate
         const height = video.videoHeight / this.#downsamplingRate
 
@@ -64,14 +63,14 @@ export default class Histogram {
 
     compute(renderer) { // should be called in render function
         if (this.#coord) {
-            this.#offscreanScene.remove(this.#coord);
-            this.#coord.geometry.dispose();
+            this.#offscreanScene.remove(this.#coord)
+            this.#coord.geometry.dispose()
         }
         this.#coord = new THREE.Points(this.#coordGeometry, this.#dataMaterial)
         this.#offscreanScene.add(this.#coord)
 
         renderer.setRenderTarget(this.#data)
-        renderer.clear();
+        renderer.clear()
         for (let i=0; i<3; i++) {
             const color = [0, 0, 0]
             color[i] = 1

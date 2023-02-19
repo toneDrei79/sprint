@@ -7,6 +7,7 @@ void main() {
     float size = 7.0;
     float variance = 5.0;
     gl_PointSize = size / (-pos.z*variance);
+    // gl_PointSize = 30.;
     gl_Position = projectionMatrix * pos;
     // gl_Position = projectionMatrix * modelViewMatrix * vec4(color-vec3(.5,.5,.5), 1.0);
     // gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);

@@ -3,12 +3,13 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import Stats from 'three/addons/libs/stats.module.js';
 import Histogram from './histogram.js'
+import Particle from "./particle.js"
 
 
 var camera, camera2, controls, scene, scene2, renderer, container;
 var video, videoTexture;
 
-let histogram
+let histogram, particle
 let gui
 
 var colorSpaceMaterial
@@ -40,11 +41,11 @@ async function init() {
 
     // camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 10);
     const aspect = window.innerWidth / window.innerHeight
-    camera = new THREE.OrthographicCamera(-aspect/2, aspect/2, 1/2, -1/2, 1 / Math.pow(2, 53), 1)
+    camera = new THREE.OrthographicCamera(-aspect/2, aspect/2, 1/2, -1/2, 1 / Math.pow(2, 53), 10)
     camera2 = new THREE.OrthographicCamera(-aspect/2, aspect/2, 1/2, -1/2, 1 / Math.pow(2, 53), 10)
     // camera2 = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 10);
     camera.position.z = 0.7;
-    camera2.position.set(0.5, 0, -5);
+    camera2.position.z = 0.7;
 
 
 
@@ -59,6 +60,8 @@ async function init() {
 
     histogram = new Histogram()
     scene.add(histogram.mesh)
+
+    particle = new Particle()
     
 
 
@@ -102,8 +105,12 @@ function videoOnLoadedData() {
 
         scene.background = videoTexture
         
-        histogram.setVideoTexture(videoTexture)
         histogram.loadCoordGeometry(video)
+        histogram.setVideoTexture(videoTexture)
+
+        particle.loadGeometry(video)
+        particle.setVideoTexture(videoTexture)
+        scene2.add(particle.mesh)
     }
 }
 

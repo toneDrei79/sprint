@@ -2,8 +2,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import Stats from 'three/addons/libs/stats.module.js';
-const particlVertexShader = load('./shaders/particlevert.glsl')
-const particlFragmentShader = load('./shaders/particlefrag.glsl')
+const particlVertexShader = load('./shaders/particle.vert.glsl')
+const particlFragmentShader = load('./shaders/particle.frag.glsl')
 const histv = load('./shaders/histodata.vert.glsl')
 const histf = load('./shaders/histodata.frag.glsl')
 const drawv = load('./shaders/histograph.vert.glsl')
@@ -117,14 +117,18 @@ async function init() {
             },
         })
 
-
-        const quantizationNum = 100
-        const histGeom = new THREE.PlaneGeometry(1, 1, 256, quantizationNum)
-        const histmesh = new THREE.Mesh(histGeom, histMat)
-        histmesh.scale.set(.4, .4, .4)
-        scene.add(histmesh)
-
+        
     }
+
+
+
+    colorSpaceMaterial = new THREE.ShaderMaterial({
+        vertexShader: particlVertexShader,
+        fragmentShader: particlFragmentShader,
+        uniforms: {
+            tex: { value: null },
+        }
+    });
 
     
     
@@ -220,10 +224,10 @@ function shad() {
         needsUpdate = false    
     }
     
-    // var hhh = new THREE.PlaneGeometry(1, 1, 256, 100)
-    // var hhmesh = new THREE.Mesh(hhh, histMat)
+    var hhh = new THREE.PlaneGeometry(1, 1, 256, 100)
+    var hhmesh = new THREE.Mesh(hhh, histMat)
 
-    // return hhmesh
+    return hhmesh
 }
 
 function videoOnLoadedData() {
@@ -238,10 +242,9 @@ function videoOnLoadedData() {
         
         var points = textureToPoint(videoTexture, video.videoWidth, video.videoHeight)
         points.name = 'point'
-        particleSpace.add(points)
+        particleSpace.add(points);
         // colorSpaceMaterial.uniforms.tex.value = videoTexture
 
-        shad()
         // histmesh = shad()
         // histmesh.scale.set(.4, .4, .4)
         // scene.add(histmesh)
@@ -278,21 +281,15 @@ function animate() {
 function textureToPoint(texture, width, height) {
     var discret = 2;
 
-    colorSpaceMaterial = new THREE.ShaderMaterial({
-        vertexShader: particlVertexShader,
-        fragmentShader: particlFragmentShader,
-        uniforms: {
-            tex: { value: texture },
-        }
-    });
+    colorSpaceMaterial.uniforms.tex.value = texture
 
     const geometry = new THREE.BufferGeometry();
     const positions = [];
     for (let i = 0; i < height; i += discret) {
         for (let j = 0; j < width; j += discret) {
             // positions
-            const x = (i+0.5) / height;
-            const y = (j+0.5) / width;
+            const x = (i+0.5) / width;
+            const y = (j+0.5) / height;
             const z = 0;
             positions.push(x, y, z);
         }
