@@ -82,14 +82,22 @@ export default class Particle {
         const grid = new THREE.GridHelper(1, 10, 0x777777, 0x777777)
         grid.position.y = -.5
         group.add(grid)
-        
-        for (let i=0, pos=[[-.5,-.5,0.],[0.,-.5,-.5],[-.5,0.,-.5]], rot=[[Math.PI/2.,0.,0.],[0.,0.,Math.PI/2.],[0.,0.,0.]]; i<3; i++) {
-            const color = [0., 0., 0.]
-            color[i] = 1.
+
+        let pos = [[0.,-.5,-.5],[-.5,0.,-.5],[-.5,-.5,0.]]
+        let rot = [[0.,0.,Math.PI/2.],[0.,0.,0.],[Math.PI/2.,0.,0.]]
+        let color = [[0.,1.,0.],[0.,0.,1.],[1.,0.,0.]]
+        if (this.#mode == Particle.space.CIExyY) {
+            color = [[1.,.3,0.],[1.,1.,1.],[0.,.5,1.]]
+        }
+        else if (this.#mode == Particle.space.CIELab) {
+            pos = [[0.,-.5,0.],[0.,0.,0.],[0.,-.5,0.]]
+            color = [[.5,0.,1.],[1.,1.,1.],[.7,1.,0.]]
+        }
+        for (let i=0; i<3; i++) {
             const axis = new THREE.Mesh(
                 new THREE.CylinderGeometry(.005, .005, 1),
                 new THREE.MeshBasicMaterial({
-                    color: new THREE.Color(color[0], color[1], color[2]),
+                    color: new THREE.Color(color[i][0], color[i][1], color[i][2]),
                     transparent: true,
                     opacity: .3
                 })

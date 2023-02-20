@@ -48,6 +48,10 @@ vec3 toCIELab(vec3 XYZ) {
     Lab.y /= 150.;
     Lab.x /= 128.;
     Lab.z /= 128.;
+    // rotate -45
+    float PI = 3.1415;
+    Lab.x = Lab.x*cos(PI/4.) + Lab.z*sin(PI/4.);
+    Lab.z = Lab.x*sin(PI/4.) - Lab.z*cos(PI/4.);
     return Lab;
 }
 
@@ -60,7 +64,7 @@ void main() {
     }
     else if (mode == 1) {
         vec3 linear = linearize(color.rgb);
-        pos = vec4(toCIEXYZ(linear).xyz-vec3(.5,.5,.5), 1.);
+        pos = vec4(toCIEXYZ(linear).yzx-vec3(.5,.5,.5), 1.);
     }
     else if (mode == 2) {
         vec3 linear = linearize(color.rgb);
