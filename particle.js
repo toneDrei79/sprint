@@ -63,6 +63,8 @@ export default class Particle {
         geometry.computeBoundingSphere()
         this.#geometry = geometry
 
+        this.#material.uniforms.mode.value = this.#mode
+
         this.#needsUpdate = false
     }
 
@@ -81,7 +83,7 @@ export default class Particle {
         grid.position.y = -.5
         group.add(grid)
         
-        for (let i=0, pos=[[0.,-.5,-.5],[-.5,0.,-.5],[-.5,-.5,0.]], rot=[[0.,0.,Math.PI/2],[0.,0.,0.],[Math.PI/2,0.,0.]]; i<3; i++) {
+        for (let i=0, pos=[[-.5,-.5,0.],[0.,-.5,-.5],[-.5,0.,-.5]], rot=[[Math.PI/2.,0.,0.],[0.,0.,Math.PI/2.],[0.,0.,0.]]; i<3; i++) {
             const color = [0., 0., 0.]
             color[i] = 1.
             const axis = new THREE.Mesh(

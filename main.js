@@ -36,6 +36,7 @@ async function init() {
     orbitCamera = new THREE.PerspectiveCamera(75, aspect, .001, 10)
     camera.position.z = .5
     orbitCamera.position.z = .5
+    orbitCamera.position.y = .1
 
     const controls = new OrbitControls(orbitCamera, renderer.domElement)
     controls.maxDistance = 1
@@ -51,7 +52,7 @@ async function init() {
 
     histogram = new Histogram()
     const histogramMesh = histogram.mesh
-    histogramMesh.position.set(0., -.2, 0.)
+    histogramMesh.position.y = -.3
     scene.add(histogramMesh)
 
     particle = new Particle() // added to scene later
@@ -89,6 +90,7 @@ function animate() {
         particle.loadGeometry(video)
         const particleMesh = particle.mesh
         particleMesh.name = 'particle'
+        particleMesh.position.y = .1
         orbitScene.add(particleMesh)
     }
     stats.update()
@@ -127,9 +129,8 @@ function videoOnLoadedData() {
         particle.setVideoTexture(videoTexture)
         const particleMesh = particle.mesh
         particleMesh.name = 'particle'
+        particleMesh.position.y = .1
         orbitScene.add(particleMesh)
-
-        particle.se = 1
     }
 }
 
