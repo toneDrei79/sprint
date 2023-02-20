@@ -10,6 +10,7 @@ let camera, orbitCamera, scene, orbitScene, renderer
 let video, videoTexture
 let histogram, particle
 let stats
+let constraints, availableDevices = {}
 
 init()
 animate()
@@ -58,18 +59,27 @@ async function init() {
     particle = new Particle() // added to scene later
     
     const gui = new GUI({title: 'Settings'})
+    gui.close()
     guiHistogram(gui)
     guiParticle(gui)
-    gui.close()
+
 
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('navigator.mediaDevices is not loaded.')
-    const constraints = {video: {width: 1920, height: 1080, facingMode: 'user'}}
+    const _devices = await navigator.mediaDevices.enumerateDevices()
+    const _videoDevices = _devices.filter((device) => device.kind == 'videoinput')
+    _videoDevices.map((videoDevice) => availableDevices[videoDevice.label] = videoDevice.deviceId)
+    
+    // const constraints = {video: {width: 1920, height: 1080, facingMode: 'user'}}
+    constraints = {video: {width: 1920, height: 1080, deviceID: availableDevices[0]}}
     const userMedia = await navigator.mediaDevices.getUserMedia(constraints)
+
     video = document.createElement('video')
     video.srcObject = userMedia
     video.play()
 
     video.onloadeddata = videoOnLoadedData()
+
+    guiVideoCamera(gui)
 }
 
 function render() {
@@ -112,6 +122,16 @@ function guiParticle(gui) {
     folder.close()
 }
 
+function guiVideoCamera(gui) {
+    const folder = gui.addFolder('Camera')
+    folder.add(constraints.video, 'deviceID', availableDevices).name('use').onChange(async(value) => {
+        const userMedia = await navigator.mediaDevices.getUserMedia(constraints)
+        video.srcObject = userMedia
+        video.play()
+    })
+    folder.close()
+}
+
 function videoOnLoadedData() {
     return function() {
         videoTexture = new THREE.VideoTexture(video)
@@ -125,6 +145,7 @@ function videoOnLoadedData() {
         histogram.loadCoordGeometry(video)
         histogram.setVideoTexture(videoTexture)
 
+        orbitScene.remove(orbitScene.getObjectByName('particle'))
         particle.loadGeometry(video)
         particle.setVideoTexture(videoTexture)
         const particleMesh = particle.mesh
