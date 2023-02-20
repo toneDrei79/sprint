@@ -50,13 +50,16 @@ async function init() {
 
 
     histogram = new Histogram()
-    scene.add(histogram.mesh)
+    const histogramMesh = histogram.mesh
+    histogramMesh.position.set(0., -.2, 0.)
+    scene.add(histogramMesh)
 
     particle = new Particle() // added to scene later
     
-    const gui = new GUI()
+    const gui = new GUI({title: 'Settings'})
     guiHistogram(gui)
-    // guiParticle(gui)
+    guiParticle(gui)
+    gui.close()
 
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('navigator.mediaDevices is not loaded.')
     const constraints = {video: {width: 1920, height: 1080, facingMode: 'user'}}
@@ -80,7 +83,14 @@ function animate() {
     requestAnimationFrame(animate)
 
     if (histogram.needsUpdate) histogram.loadCoordGeometry(video)
-    if (particle.needsUpdate) particle.loadGeometry(video)
+    if (particle.needsUpdate) {
+        orbitScene.remove(orbitScene.getObjectByName('particle'))
+
+        particle.loadGeometry(video)
+        const particleMesh = particle.mesh
+        particleMesh.name = 'particle'
+        orbitScene.add(particleMesh)
+    }
     stats.update()
 
     render()
@@ -90,11 +100,14 @@ function guiHistogram(gui) {
     const folder = gui.addFolder('Histogram')
     folder.add(histogram, 'downsamplingRate', 1., 32.).step(1.).name('down-sampling rate')
     folder.add(histogram, 'roughness', 1., 32.).step(1.).name('roughness')
+    folder.close()
 }
 
 function guiParticle(gui) {
     const folder = gui.addFolder('Particle')
-    // folder.add(particle, 'downsamplingRate', 1., 128.).step(1.).name('down-sampling rate')
+    folder.add(particle, 'downsamplingRate', 1., 16.).step(1.).name('down-sampling rate')
+    folder.add(particle, 'mode', Particle.space).name('mode')
+    folder.close()
 }
 
 function videoOnLoadedData() {
@@ -112,7 +125,11 @@ function videoOnLoadedData() {
 
         particle.loadGeometry(video)
         particle.setVideoTexture(videoTexture)
-        orbitScene.add(particle.mesh)
+        const particleMesh = particle.mesh
+        particleMesh.name = 'particle'
+        orbitScene.add(particleMesh)
+
+        particle.se = 1
     }
 }
 

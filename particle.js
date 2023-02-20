@@ -6,11 +6,22 @@ export default class Particle {
     #material
     #geometry
 
+    #downsamplingRate
+    #mode
     #needsUpdate
 
     #shaderLoader
 
+    static space = {
+        sRGB: 0,
+        CIEXYZ: 1,
+        CIExyY: 2,
+        CIELab: 3
+    }
+
     constructor() {
+        this.#downsamplingRate = 4.
+        this.#mode = Particle.space.sRGB
         this.#needsUpdate = false
         this.#shaderLoader = new ShaderLoader()
 
@@ -21,6 +32,7 @@ export default class Particle {
         this.#material = new THREE.ShaderMaterial({
             uniforms: {
                 tex: {value: null}, // video texture will be set after loaded
+                mode: {value: this.#mode},
                 isShadow: {value: false}
             },
             vertexShader: this.#shaderLoader.load('./shaders/particle.vert.glsl'),
@@ -36,8 +48,8 @@ export default class Particle {
     }
 
     loadGeometry(video) { // should be called in video.onLoadedVideo or needs update
-        const width = video.videoWidth / 4. // downsampling
-        const height = video.videoHeight / 4. // downsampling
+        const width = video.videoWidth / this.#downsamplingRate
+        const height = video.videoHeight / this.#downsamplingRate
         
         const positions = []
         for (let j=0; j<height; j++) {
@@ -54,11 +66,7 @@ export default class Particle {
         this.#needsUpdate = false
     }
 
-    get mesh() { // should be taken after load geometry (in video.onLoadedVideo)
-        if (!this.#geometry) throw new Error('Particle geometry is not loaded.')
-
-        const group = new THREE.Group()        
-
+    #generateSpace(group) {
         const background = new THREE.Mesh(
             new THREE.BoxGeometry(1,1,1),
             new THREE.MeshBasicMaterial({
@@ -88,6 +96,13 @@ export default class Particle {
             axis.rotation.set(rot[i][0], rot[i][1], rot[i][2])
             group.add(axis)
         }
+    }
+
+    get mesh() { // should be taken after load geometry (in video.onLoadedVideo)
+        if (!this.#geometry) throw new Error('Particle geometry is not loaded.')
+
+        const group = new THREE.Group()
+        this.#generateSpace(group)
         
         const particle = new THREE.Points(this.#geometry, this.#material)
 
@@ -104,6 +119,24 @@ export default class Particle {
 
     get needsUpdate() {
         return this.#needsUpdate
+    }
+
+    get downsamplingRate() {
+        return this.#downsamplingRate
+    }
+
+    set downsamplingRate(value) {
+        this.#downsamplingRate = value
+        this.#needsUpdate = true
+    }
+
+    get mode() {
+        return this.#mode
+    }
+
+    set mode(value) {
+        this.#mode = value
+        this.#needsUpdate = true
     }
 
 }
